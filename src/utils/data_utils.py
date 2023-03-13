@@ -71,6 +71,8 @@ def split_data(file_path,train_ratio,eval_ratio,test_ratio,criteria=None):
     write_func(os.path.join(dir_path,"eval."+ext),x_train)
     write_func(os.path.join(dir_path,"test."+ext),x_train)
 
+
+# TODO: conver to datacollator
 def transform(encodings):
 
     encodings_tensor=torch.longTensor(encodings)

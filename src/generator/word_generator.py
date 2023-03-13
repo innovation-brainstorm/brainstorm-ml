@@ -5,6 +5,7 @@ from torch.utils.data import Dataset,DataLoader
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, TrainingArguments,\
                         trainer,DataCollatorForLanguageModeling,get_scheduler,pipeline
 
+#TODO: log
 
 class WordGenerator(object):
 
@@ -17,7 +18,7 @@ class WordGenerator(object):
         self.tokenizer.pad_token=self.tokenizer.bos_token
         self.tokenizer.add_special_tokens({'pad_token':'<pad>'})
 
-        self.mode.resize_token_embeddings(len(self.tokenizer))
+        self.model.resize_token_embeddings(len(self.tokenizer))
 
 
     
@@ -28,7 +29,6 @@ class WordGenerator(object):
         batch_size=8
         learning_rate=5e-5
 
-        print_every=10
         max_length=200
 
         v=self.tokenizer.vocab_size
@@ -45,19 +45,22 @@ class WordGenerator(object):
         eval_loss=[]
         for i in range(epochs):
             print(f"Epoch:{i}/{epochs}..........")
-            train_loss.append(self.train_loop(train_dataloader,self.model,optimizer,self.tokenizer,data_collator,max_length,print_every))
+            train_loss.append(self.train_loop(train_dataloader,self.model,optimizer,data_collator,max_length))
             eval_loss.append(self.test_loop(eval_dataloader,self.model,self.tokenizer,data_collator,max_length))
 
 
 
-    def train_loop(self,dataloader,model,optimizer,tokenizer,data_collator,max_length,print_every):
+    def train_loop(self,dataloader,model,optimizer,data_collator,max_length):
+
+        print_every=10
 
         size=len(dataloader.dataset)
         print_loss=0
         running_loss=0
 
         for batch,texts in enumerate(dataloader):
-            encodings=tokenizer(texts,truncation=True,padding="max_length",max_length=max_length)
+            encodings=self.tokenizer(texts,truncation=True,padding="max_length",max_length=max_length)
+            
             X=data_collator([encodings])
 
 
@@ -68,10 +71,9 @@ class WordGenerator(object):
             running_loss+=loss
 
 
-
-            self.optimizer.zero_grad()
+            optimizer.zero_grad()
             loss.backward()
-            self.optimizer.step()
+            optimizer.step()
 
             if batch % print_every==0:
                 print_loss_avg,current=print_loss if batch==0 else print_loss/print_every,batch*len(texts)

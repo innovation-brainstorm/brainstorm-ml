@@ -12,8 +12,9 @@ def process():
 
 def generate_data_main(file_path,generate_col,count):
     # 1.check input: file existing, col existing
-    # 2 decide which model to run
-    # 3. generate training files
+    # 2. generate training files
+    # 3 decide which model to run
+
     # 4. train
     # 5. generate
     # 6 send result to java service

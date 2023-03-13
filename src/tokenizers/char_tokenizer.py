@@ -3,6 +3,7 @@ class Encoding(object):
     def __init__(self,ids):
         self.ids=ids
 
+# TODO: inherit from tokenizer
 class CharacterTokenizer(object):
 
     def __init__(self,token_unk="[UNK]",token_pad="[PAD]",token_bos="[BOS]",token_eos="[EOS]"):
@@ -89,6 +90,13 @@ class CharacterTokenizer(object):
 
     def token_to_id(self,token):
         return self.token_id_dict[token]
+
+    
+    def save(self):
+        pass
+
+    def load(self):
+        pass
 
 
 

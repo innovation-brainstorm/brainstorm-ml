@@ -7,35 +7,42 @@ from tokenizers.char_tokenizer import CharacterTokenizer
 
 from model.lstm_lm import LSTMLanguageModel
 
+# TODO: log
+
 class CharGenerator(object):
 
-    def __init__(self,model):
-        self.model=model
+    hidden_size=125
+    n_layers=1
+    
+
+    def __init__(self,output_dir):
+
+        self.output_dir=output_dir
+
 
         self.tokenizer=CharacterTokenizer()
 
-        
+        self.model=None
 
+        
     def train(self,train_data:Dataset,eval_data:Dataset):
+
         self.tokenizer.train(train_data.data)
+
+        #self.tokenizer.save(self.output_dir)
 
         v=self.tokenizer.get_vocab_size()
         print(f"vocab count: {v}")
-
-        hidden_size=125
-        n_layers=1
 
         epochs=50
         batch_size=16
         learning_rate=0.0001
 
-        print_every=10
-
         train_dataloader=DataLoader(train_data,batch_size=batch_size,shuffle=True)
         eval_dataloader=DataLoader(eval_data,batch_size=batch_size,shuffle=True)
 
-        self.model=LSTMLanguageModel(v,hidden_size,v,n_layers)
-        self.model.train()
+        model=LSTMLanguageModel(v,self.hidden_size,v,self.n_layers)
+        model.train()
 
         loss_fn=nn.CrossEntropyLoss(ignore_index=0)
         optimizer=torch.optim.Adam(self.model.parameters(),lr=learning_rate)
@@ -45,18 +52,28 @@ class CharGenerator(object):
         eval_loss=[]
         for i in range(epochs):
             print(f"Epoch:{i}/{epochs}..........")
-            train_loss.append(self.train_loop(train_dataloader,self.model,loss_fn,optimizer,self.tokenizer,print_every))
-            eval_loss.append(self.test_loop(eval_dataloader,self.model,loss_fn,self.tokenizer))
+            train_loss.append(self.train_loop(train_dataloader,model,loss_fn,optimizer))
+            eval_loss.append(self.test_loop(eval_dataloader,model,loss_fn))
+
+            #TODO: stop criteria
+            #TODO: save model
+
+        self.model=model
 
 
-    def train_loop(self,dataloader,model,loss_fn,optimizer,tokenizer,print_every):
+
+        
+    def train_loop(self,dataloader,model,loss_fn,optimizer):
+
+        print_every=10
+
         size=len(dataloader.dataset)
         print_loss=0
         running_loss=0
 
         for batch,texts in enumerate(dataloader):
 
-            encodings=tokenizer.encode_batch(texts)
+            encodings=self.tokenizer.encode_batch(texts)
             encodings=[e.ids for e in encodings]
 
             X,y=transform(encodings)
@@ -79,7 +96,7 @@ class CharGenerator(object):
         
         return running_loss/len(dataloader)
 
-    def test_loop(self,dataloader,model,loss_fn,tokenizer):
+    def test_loop(self,dataloader,model,loss_fn):
         size=len(dataloader.dataset)
         total_loss=0
         correct=0
@@ -97,7 +114,7 @@ class CharGenerator(object):
 
                 sent_length+=mask.type(torch.float).sum()
 
-                output,hidden=self.model(X)
+                output,hidden=model(X)
                 total_loss+=loss_fn(output,y).item()
                 correct+=torch.masked_select(output.argmax(1)==y,mask).type(torch.float).sum().item()
 
@@ -108,7 +125,7 @@ class CharGenerator(object):
 
         return total_loss
 
-    def generate(self):
+    def generate(self,count):
         pass
 
     def save(self):
