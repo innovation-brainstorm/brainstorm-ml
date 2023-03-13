@@ -1,6 +1,7 @@
+import os
+from utils.data_utils import read_txt,read_csv
 
-
-from torch.utils.data import Dataset,Dataloader
+from torch.utils.data import Dataset
 
 class TextDataset(Dataset):
     def __init__(self,root,split="train",max_count=None,ext="txt",stop_token=""):

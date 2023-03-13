@@ -1,0 +1,12 @@
+#env
+.env
+
+#python
+__pycache__/
+.ipynb_checkpoints/
+
+#ide
+.vscode/
+
+data/
+models/

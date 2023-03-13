@@ -1,4 +1,3 @@
-import torch
 
 class Encoding(object):
     def __init__(self,ids):
