@@ -2,56 +2,63 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 
+from generator.base_generator import BaseGenerator
 from utils.data_utils import transform
-from tokenizers.char_tokenizer import CharacterTokenizer
+from tokenizer.char_tokenizer import CharacterTokenizer
 
 from model.lstm_lm import LSTMLanguageModel
+from decoding.top_p_decoding import TopPDecoding
 
 # TODO: log
 
-class CharGenerator(object):
+class CharGenerator(BaseGenerator):
 
     hidden_size=125
     n_layers=1
+    epochs=50
+    batch_size=16
+    learning_rate=0.0001
     
 
-    def __init__(self,output_dir):
+    def __init__(self,data_or_filepath,output_dir):
 
+        self.data_or_filepath=data_or_filepath
         self.output_dir=output_dir
 
-
         self.tokenizer=CharacterTokenizer()
-
+        self.decoder=TopPDecoding()
         self.model=None
 
-        
-    def train(self,train_data:Dataset,eval_data:Dataset):
 
+    def train_tokenizer(self,train_data:Dataset):
         self.tokenizer.train(train_data.data)
 
-        #self.tokenizer.save(self.output_dir)
+        self.tokenizer.save(self.output_dir)
 
         v=self.tokenizer.get_vocab_size()
         print(f"vocab count: {v}")
 
-        epochs=50
-        batch_size=16
-        learning_rate=0.0001
 
-        train_dataloader=DataLoader(train_data,batch_size=batch_size,shuffle=True)
-        eval_dataloader=DataLoader(eval_data,batch_size=batch_size,shuffle=True)
+    def train(self,train_data:Dataset,eval_data:Dataset):
+
+
+        v=self.tokenizer.get_vocab_size()
+
+
+        train_dataloader=DataLoader(train_data,batch_size=self.batch_size,shuffle=True)
+        eval_dataloader=DataLoader(eval_data,batch_size=self.batch_size,shuffle=True)
 
         model=LSTMLanguageModel(v,self.hidden_size,v,self.n_layers)
         model.train()
 
         loss_fn=nn.CrossEntropyLoss(ignore_index=0)
-        optimizer=torch.optim.Adam(self.model.parameters(),lr=learning_rate)
+        optimizer=torch.optim.Adam(model.parameters(),lr=self.learning_rate)
 
 
         train_loss=[]
         eval_loss=[]
-        for i in range(epochs):
-            print(f"Epoch:{i}/{epochs}..........")
+        for i in range(self.epochs):
+            print(f"Epoch:{i}/{self.epochs}..........")
             train_loss.append(self.train_loop(train_dataloader,model,loss_fn,optimizer))
             eval_loss.append(self.test_loop(eval_dataloader,model,loss_fn))
 
@@ -125,12 +132,4 @@ class CharGenerator(object):
 
         return total_loss
 
-    def generate(self,count):
-        pass
-
-    def save(self):
-        pass
-
-    def load(self):
-        pass
 

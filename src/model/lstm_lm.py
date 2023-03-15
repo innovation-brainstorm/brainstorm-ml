@@ -29,7 +29,7 @@ class LSTMLanguageModel(nn.Module):
         
         output=self.embedding(input_seq)
 
-        output,hidden=self.lstm(output,(hidden,cell))
+        output,(hidden,cell)=self.lstm(output,(hidden,cell))
 
         output=output.contiguous().view(-1,self.hidden_size)
         output=self.dropout(output)

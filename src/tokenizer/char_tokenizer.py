@@ -6,7 +6,7 @@ class Encoding(object):
 # TODO: inherit from tokenizer
 class CharacterTokenizer(object):
 
-    def __init__(self,token_unk="[UNK]",token_pad="[PAD]",token_bos="[BOS]",token_eos="[EOS]"):
+    def __init__(self,token_sep="[SEP]",token_unk="[UNK]",token_pad="[PAD]",token_bos="[BOS]",token_eos="[EOS]"):
 
         self.id_to_token=[]
         self.token_id_dict={}
@@ -15,8 +15,9 @@ class CharacterTokenizer(object):
         self.token_pad=token_pad
         self.token_bos=token_bos
         self.token_eos=token_eos
+        self.token_sep=token_sep
 
-        self.special_tokens=[token_pad,token_unk,token_bos,token_eos]
+        self.special_tokens=[token_pad,token_sep,token_unk,token_bos,token_eos]
 
         self._init_special_tokens(self.special_tokens)
 
@@ -92,7 +93,7 @@ class CharacterTokenizer(object):
         return self.token_id_dict[token]
 
     
-    def save(self):
+    def save(self,output_dir):
         pass
 
     def load(self):
