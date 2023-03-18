@@ -21,9 +21,11 @@ class CharacterTokenizer(object):
 
         self._init_special_tokens(self.special_tokens)
 
+        self.vocab_size=0
+
 
     def get_vocab_size(self):
-        return len(self.id_to_token)
+        return self.vocab_size
 
     def _init_special_tokens(self,special_tokens):
         for token in special_tokens:
@@ -88,6 +90,8 @@ class CharacterTokenizer(object):
                     _id=len(self.id_to_token)
                     self.id_to_token.append(char)
                     self.token_id_dict[char]=_id
+
+        self.vocab_size=len(self.id_to_token)
 
     def token_to_id(self,token):
         return self.token_id_dict[token]

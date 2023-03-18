@@ -8,5 +8,5 @@ __pycache__/
 #ide
 .vscode/
 
-data/
-models/
+# data/
+# models/

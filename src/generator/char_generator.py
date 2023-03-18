@@ -8,6 +8,7 @@ from tokenizer.char_tokenizer import CharacterTokenizer
 
 from model.lstm_lm import LSTMLanguageModel
 from decoding.top_p_decoding import TopPDecoding
+from dataset.text_dataset import TextDataset
 
 # TODO: log
 
@@ -29,6 +30,12 @@ class CharGenerator(BaseGenerator):
         self.decoder=TopPDecoding()
         self.model=None
 
+    def build_dataset(self,dir):
+            
+        train_dataset=TextDataset(root=self.output_dir,split="train",max_count=5000)
+        eval_dataset=TextDataset(root=self.output_dir,split="eval",max_count=1000)
+
+        return train_dataset,eval_dataset
 
     def train_tokenizer(self,train_data:Dataset):
         self.tokenizer.train(train_data.data)
@@ -132,4 +139,5 @@ class CharGenerator(BaseGenerator):
 
         return total_loss
 
-
+    def generate(self,count):
+            self.decoder.decode(self.model,self.tokenizer,count=count,max_length=100,top_p=0.6)

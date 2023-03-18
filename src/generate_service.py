@@ -48,4 +48,6 @@ def generate_data_main(file_path,generate_cols,count):
 
 
 if __name__=="__main__":
-     generate_data_main("data/names/name_soeid/name_soeid.csv",["full_name"],1000)
+    #  generate_data_main("data/names/name_soeid/name_soeid.csv",["full_name"],1000)
+
+     generate_data_main("data/news/news.csv",["headline"],1000)

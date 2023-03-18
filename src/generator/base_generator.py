@@ -1,5 +1,4 @@
 from utils.data_utils import split_data,read_csv
-from dataset.text_dataset import TextDataset
 
 class BaseGenerator(object):
 
@@ -17,12 +16,14 @@ class BaseGenerator(object):
         
         split_data(self.data_or_filepath,self.output_dir,0.8,0.2,0)
 
-        train_dataset=TextDataset(root=self.output_dir,split="train")
-        eval_dataset=TextDataset(root=self.output_dir,split="eval")
+        train_dataset,eval_dataset=self.build_dataset(self.output_dir)
 
         self.train_tokenizer(train_dataset)
 
         self.train(train_dataset,eval_dataset)
+    
+    def build_dataset(self,dir):
+        pass
 
 
     def train_tokenizer(self,train_dataset):
@@ -31,7 +32,7 @@ class BaseGenerator(object):
     def train(self):
         pass
 
-    def generate(self,count):
-        self.decoder.decode(self.model,self.tokenizer,count=count,max_length=100,top_p=0.6)
+    def generate(self):
+        pass
 
     
