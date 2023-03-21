@@ -7,3 +7,4 @@ transformers==4.16.0
 matplotlib==3.3.4
 numpy==1.19.2
 unidecode==1.1.2
+pydantic==1.10.6

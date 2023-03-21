@@ -128,6 +128,6 @@ class WordGenerator(BaseGenerator):
     
     def generate(self,count):
 
-        self.decoder.decode(self.model,self.tokenizer,count=count,max_length=100)
+        return self.decoder.decode(self.model,self.tokenizer,count=count,max_length=100)
 
 

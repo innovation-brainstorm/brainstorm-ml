@@ -1,19 +1,11 @@
 import os
-from utils.data_utils import split_data,read_csv
+from utils.data_utils import read_csv,write_txt
 from generator.char_generator import CharGenerator
 from generator.word_generator import WordGenerator
+from schemas import CreateTaskQuery
 
-def process():
-    # argument: task_id, file_path, generate_col, meta_col, count
-    # return status for receive task
-    # 1. add task to queue
-    # 2. check file existing
-    # 2. return status for receive task
+def process(query:CreateTaskQuery):
 
-    pass
-
-
-def generate_data_main(file_path,generate_cols,count):
     # 1.check input: file existing, col existing
     # 2. generate training files
     # 3 decide which model to run
@@ -21,8 +13,15 @@ def generate_data_main(file_path,generate_cols,count):
     # 4. train
     # 5. generate
     # 6 send result to java service
+
+    file_path=query.filePath
+    generate_cols=[query.columnName]
+    count=query.ExpectedCount
+    task_id=query.taskID
+
+
     task_dir=os.path.dirname(file_path)
-    run_dir=os.path.join(task_dir,"run")
+    run_dir=os.path.join(task_dir,"run_"+task_id)
     try:
         os.mkdir(run_dir)
     except Exception as e:
@@ -41,13 +40,15 @@ def generate_data_main(file_path,generate_cols,count):
     else:
         generator=CharGenerator(concated_data,run_dir)
 
-    # split_data(concated_data,run_dir,0.8,0.2,0)
 
     generator.run()
-    generator.generate(10)
+    generated_text_list=generator.generate(count)
+
+    write_txt(os.path.join(run_dir,"output.txt"),generated_text_list)
 
 
-if __name__=="__main__":
-    #  generate_data_main("data/names/name_soeid/name_soeid.csv",["full_name"],1000)
-
-     generate_data_main("data/news/news.csv",["headline"],1000)
+# if __name__=="__main__":
+#     #  generate_data_main("data/names/name_soeid/name_soeid.csv",["full_name"],1000)
+#     query=CreateTaskQuery(filePath="data/news/news.csv",columnName="headline",ExpectedCount=1000,
+#                           sessionID="",taskID="",status="NEW")
+#     process(query)

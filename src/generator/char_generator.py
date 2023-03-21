@@ -16,7 +16,7 @@ class CharGenerator(BaseGenerator):
 
     hidden_size=125
     n_layers=1
-    epochs=50
+    epochs=1
     batch_size=16
     learning_rate=0.0001
     
@@ -140,4 +140,4 @@ class CharGenerator(BaseGenerator):
         return total_loss
 
     def generate(self,count):
-            self.decoder.decode(self.model,self.tokenizer,count=count,max_length=100,top_p=0.6)
+        return self.decoder.decode(self.model,self.tokenizer,count=count,max_length=100,top_p=0.6)
