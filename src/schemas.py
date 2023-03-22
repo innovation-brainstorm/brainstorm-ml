@@ -15,7 +15,7 @@ class CreateTaskQuery(BaseModel):
     sessionID:str
     taskID:str
     columnName:str
-    ExpectedCount:int
+    expectedCount:int
     status:Status="NEW"
     filePath:str
 
@@ -24,3 +24,10 @@ class CreateTaskResponse(BaseModel):
     taskID:str=""
     status:Status="RUNNING"
 
+class UpdateTaskResponse(BaseModel):
+    sessionID:str
+    taskID:str
+    columnName:str
+    actualCount:int
+    status:Status
+    filePath:str

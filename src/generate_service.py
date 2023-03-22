@@ -1,15 +1,39 @@
 import os
-from utils.data_utils import read_csv,write_txt
+import http.client
+
+import pandas as pd
+from utils.data_utils import read_csv,write_txt,write_csv
 from generator.char_generator import CharGenerator
 from generator.word_generator import WordGenerator
-from schemas import CreateTaskQuery
+from schemas import CreateTaskQuery,UpdateTaskResponse,Status
+from settings import SERVICE_URL,SERVICE_PORT
+
+
+def write_output(generated_text_list,generate_cols,output_path):
+
+    output_df=pd.DataFrame(generated_text_list,columns=generate_cols)
+
+    write_csv(output_path,output_df)
+    # write_txt(output_path,generated_text_list)
+
+def return_result(response_payload:UpdateTaskResponse):
+    conn = http.client.HTTPSConnection(SERVICE_URL, SERVICE_PORT)
+    
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    conn.request("POST", "/task/updateStatus", response_payload.json(), headers)
+
+    res = conn.getresponse()
+    data = res.read()
+    print(data.decode("utf-8"))
+
 
 def process(query:CreateTaskQuery):
 
     # 1.check input: file existing, col existing
     # 2. generate training files
     # 3 decide which model to run
-
     # 4. train
     # 5. generate
     # 6 send result to java service
@@ -22,6 +46,8 @@ def process(query:CreateTaskQuery):
 
     task_dir=os.path.dirname(file_path)
     run_dir=os.path.join(task_dir,"run_"+task_id)
+    output_path=os.path.join(run_dir,"output.csv")
+
     try:
         os.mkdir(run_dir)
     except Exception as e:
@@ -44,7 +70,13 @@ def process(query:CreateTaskQuery):
     generator.run()
     generated_text_list=generator.generate(count)
 
-    write_txt(os.path.join(run_dir,"output.txt"),generated_text_list)
+    write_output(generated_text_list,generate_cols,output_path)
+
+    response_payload=UpdateTaskResponse(sessionID=query.sessionID,taskID=task_id,status=Status.COMPLETED,
+                                actualCount=len(generated_text_list),columnName=query.columnName,filePath=output_path)
+
+    return_result(response_payload)
+
 
 
 # if __name__=="__main__":
