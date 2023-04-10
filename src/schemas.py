@@ -12,21 +12,21 @@ class Status(Enum):
 
 class CreateTaskQuery(BaseModel):
 
-    sessionID:str
-    taskID:str
+    sessionId:str
+    taskId:str
     columnName:str
     expectedCount:int
     status:Status="NEW"
     filePath:str
 
 class CreateTaskResponse(BaseModel):
-    sessionID:str=""
-    taskID:str=""
+    sessionId:str=""
+    taskId:str=""
     status:Status="RUNNING"
 
 class UpdateTaskResponse(BaseModel):
-    sessionID:str
-    taskID:str
+    sessionId:str
+    taskId:str
     columnName:str
     actualCount:int
     status:Status

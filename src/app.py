@@ -17,8 +17,8 @@ def create_task():
     try:
         query=CreateTaskQuery(**request.json)
 
-        response=CreateTaskResponse(sessionID=query.sessionID,
-                            taskID=query.taskID,status=Status.RUNNING)
+        response=CreateTaskResponse(sessionId=query.sessionId,
+                            taskId=query.taskId,status=Status.RUNNING)
 
         future=executor.submit(process,query)
 
@@ -27,10 +27,13 @@ def create_task():
         print("create task error:",str(e))
         raise
         
-    return response.json()
+    return app.response_class(
+                response=response.json(),
+                mimetype='application/json'
+        )
 
 @app.route("/")
-def hellow():
+def hello():
     return "Hello a!"
 
 @app.errorhandler(500)

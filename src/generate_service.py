@@ -1,12 +1,12 @@
 import os
-import http.client
+import requests
 
 import pandas as pd
 from utils.data_utils import read_csv,write_txt,write_csv
 from generator.char_generator import CharGenerator
 from generator.word_generator import WordGenerator
 from schemas import CreateTaskQuery,UpdateTaskResponse,Status
-from settings import SERVICE_URL,SERVICE_PORT
+from settings import SERVICE_URL
 
 
 def write_output(generated_text_list,generate_cols,output_path):
@@ -17,16 +17,14 @@ def write_output(generated_text_list,generate_cols,output_path):
     # write_txt(output_path,generated_text_list)
 
 def return_result(response_payload:UpdateTaskResponse):
-    conn = http.client.HTTPSConnection(SERVICE_URL, SERVICE_PORT)
     
     headers = {
         'Content-Type': 'application/json'
     }
-    conn.request("POST", "/task/updateStatus", response_payload.json(), headers)
+    response=requests.request("POST", SERVICE_URL, data=response_payload.json(), headers=headers)
 
-    res = conn.getresponse()
-    data = res.read()
-    print(data.decode("utf-8"))
+    res = response.json()
+    print(res)
 
 
 def process(query:CreateTaskQuery):
@@ -40,8 +38,8 @@ def process(query:CreateTaskQuery):
 
     file_path=query.filePath
     generate_cols=[query.columnName]
-    count=query.ExpectedCount
-    task_id=query.taskID
+    count=query.expectedCount
+    task_id=query.taskId
 
 
     task_dir=os.path.dirname(file_path)
@@ -72,7 +70,7 @@ def process(query:CreateTaskQuery):
 
     write_output(generated_text_list,generate_cols,output_path)
 
-    response_payload=UpdateTaskResponse(sessionID=query.sessionID,taskID=task_id,status=Status.COMPLETED,
+    response_payload=UpdateTaskResponse(sessionId=query.sessionId,taskId=task_id,status=Status.COMPLETED,
                                 actualCount=len(generated_text_list),columnName=query.columnName,filePath=output_path)
 
     return_result(response_payload)

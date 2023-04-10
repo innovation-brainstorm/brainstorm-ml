@@ -1,4 +1,3 @@
 
 
-SERVICE_URL="http://localhost"
-SERVICE_PORT=9000
+SERVICE_URL="http://localhost:8080/task/updateStatus"
