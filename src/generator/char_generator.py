@@ -16,7 +16,7 @@ class CharGenerator(BaseGenerator):
 
     hidden_size=125
     n_layers=1
-    epochs=1
+    epochs=50
     batch_size=16
     learning_rate=0.0001
     

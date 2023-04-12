@@ -42,14 +42,14 @@ def process(query:CreateTaskQuery):
     task_id=query.taskId
 
 
-    task_dir=os.path.dirname(file_path)
-    run_dir=os.path.join(task_dir,"run_"+task_id)
-    output_path=os.path.join(run_dir,"output.csv")
+    session_dir=os.path.dirname(os.path.dirname(file_path))
+    run_dir=os.path.dirname(file_path)
+    output_path=os.path.join(session_dir,f"{query.columnName}.csv")
 
-    try:
-        os.mkdir(run_dir)
-    except Exception as e:
-        pass
+    # try:
+    #     os.mkdir(run_dir)
+    # except Exception as e:
+    #     pass
     
     concat_pattern="[SEP]"
 

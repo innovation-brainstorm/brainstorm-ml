@@ -29,7 +29,7 @@ def read_csv(path,orient="list"):
 
 
 def write_csv(path,df):
-    df.to_csv(path)
+    df.to_csv(path,index=False)
 
 
 def remove_non_ascii_2(string):
