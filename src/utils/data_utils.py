@@ -24,7 +24,7 @@ def write_txt(path,data):
 
 def read_csv(path,orient="list"):
 
-    df=pd.read_csv(path,encoding="utf-8",index_col=False)
+    df=pd.read_csv(path,encoding="utf-8",index_col=False,dtype=str)
     return df
 
 
