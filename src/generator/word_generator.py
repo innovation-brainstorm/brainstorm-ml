@@ -1,4 +1,5 @@
 
+import os
 import torch
 from torch.utils.data import Dataset,DataLoader
 from generator.base_generator import BaseGenerator
@@ -18,12 +19,12 @@ class WordGenerator(BaseGenerator):
 
     max_length=200
 
-    def __init__(self,data_or_filepath,output_dir):
+    def __init__(self,data_or_filepath,output_dir,base_model_path):
 
         self.data_or_filepath=data_or_filepath
         self.output_dir=output_dir
 
-        self.model_path="models/gpt2"
+        self.model_path=os.path.join(base_model_path,"gpt2")
 
         self.model=GPT2LMHeadModel.from_pretrained(self.model_path)
         self.tokenizer=GPT2Tokenizer.from_pretrained(self.model_path)

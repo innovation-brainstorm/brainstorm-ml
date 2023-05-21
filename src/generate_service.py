@@ -6,7 +6,7 @@ from utils.data_utils import read_csv,write_txt,write_csv
 from generator.char_generator import CharGenerator
 from generator.word_generator import WordGenerator
 from schemas import CreateTaskQuery,UpdateTaskResponse,Status
-from settings import SERVICE_URL
+from config import config
 
 
 def write_output(generated_text_list,generate_cols,output_path):
@@ -21,7 +21,7 @@ def return_result(response_payload:UpdateTaskResponse):
     headers = {
         'Content-Type': 'application/json'
     }
-    response=requests.request("POST", SERVICE_URL, data=response_payload.json(), headers=headers)
+    response=requests.request("POST", config.SERVICE_URL, data=response_payload.json(), headers=headers)
 
     res = response.json()
     print(res)
@@ -60,7 +60,7 @@ def process(query:CreateTaskQuery):
     avg_word_count=sum(word_counts)/len(word_counts)
 
     if avg_word_count>5:
-        generator=WordGenerator(concated_data,run_dir)
+        generator=WordGenerator(concated_data,run_dir,config.BASE_MODEL_PATH)
     else:
         generator=CharGenerator(concated_data,run_dir)
 

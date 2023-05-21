@@ -3,8 +3,10 @@ from concurrent.futures import ThreadPoolExecutor
 from schemas import CreateTaskQuery,CreateTaskResponse,Status
 
 from generate_service import process
+from config import config
 
 app=Flask(__name__)
+
 executor=ThreadPoolExecutor(max_workers=1)
 
 
@@ -42,4 +44,4 @@ def internal_error(error):
 
 
 if __name__=="__main__":
-    app.run(host='0.0.0.0',debug=False,port=8000)
+    app.run(host='0.0.0.0',debug=False,port=config.PORT)
