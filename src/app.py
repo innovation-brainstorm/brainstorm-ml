@@ -4,6 +4,11 @@ from schemas import CreateTaskQuery,CreateTaskResponse,Status
 
 from generate_service import process
 from config import config
+import logging
+
+log_format = "%(asctime)s::%(levelname)s::%(filename)s::%(lineno)d::%(message)s"
+logging.basicConfig(level='INFO',format=log_format)
+logger=logging.getLogger(__name__)
 
 app=Flask(__name__)
 
@@ -26,7 +31,7 @@ def create_task():
 
 
     except Exception as e:
-        print("create task error:",str(e))
+        logger.error("create task error:", exc_info=True)
         raise
         
     return app.response_class(

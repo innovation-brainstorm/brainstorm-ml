@@ -8,8 +8,10 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel, TrainingArguments,\
                         trainer,DataCollatorForLanguageModeling,get_scheduler,pipeline
 from decoding.gpt_decoding import GPTDecoding
 from dataset.text_dataset import TextDataset
+from utils.early_stop import EarlyStop
 
-#TODO: log
+import logging
+logger=logging.getLogger(__name__)
 
 class WordGenerator(BaseGenerator):
     
@@ -46,11 +48,10 @@ class WordGenerator(BaseGenerator):
 
 
         v=self.tokenizer.vocab_size
-        print(f"vocab count: {v}")
+        logger.info(f"vocab count: {v}")
     
 
     def train(self,train_data:Dataset,eval_data:Dataset):
-
 
 
         v=self.tokenizer.vocab_size
@@ -63,13 +64,23 @@ class WordGenerator(BaseGenerator):
 
         data_collator=DataCollatorForLanguageModeling(self.tokenizer,mlm=False,return_tensors="pt")
 
-        train_loss=[]
-        eval_loss=[]
-        for i in range(self.epochs):
-            print(f"Epoch:{i}/{self.epochs}..........")
-            train_loss.append(self.train_loop(train_dataloader,self.model,optimizer,data_collator))
-            eval_loss.append(self.test_loop(eval_dataloader,self.model,self.tokenizer,data_collator))
+        early_stop=EarlyStop(patience=2,delta=0)
 
+        train_loss_list=[]
+        val_loss_list=[]
+        for i in range(self.epochs):
+            logger.info(f"Epoch:{i}/{self.epochs}..........")
+
+            train_loss=self.train_loop(train_dataloader,self.model,optimizer,data_collator)
+            val_loss=self.test_loop(eval_dataloader,self.model,self.tokenizer,data_collator)
+
+            train_loss_list.append(train_loss)
+            val_loss_list.append(val_loss)
+
+            early_stop(val_loss)
+            if early_stop.early_stop:
+                logger.info(f"Early Stop training")
+                break
 
 
     def train_loop(self,dataloader,model,optimizer,data_collator):
@@ -100,7 +111,7 @@ class WordGenerator(BaseGenerator):
             if batch % print_every==0:
                 print_loss_avg,current=print_loss if batch==0 else print_loss/print_every,batch*len(texts)
                 print_loss=0
-                print(f"loss:{print_loss_avg:>7f} [{current:>5d}/{size:>5d}]")
+                logger.info(f"loss:{print_loss_avg:>7f} [{current:>5d}/{size:>5d}]")
         
         return running_loss/len(dataloader)
 
@@ -123,7 +134,7 @@ class WordGenerator(BaseGenerator):
         total_loss/=len(dataloader)
         correct=0
 
-        print(f"Test Error:\n Accuracy:{100*correct:>0.1f}%, Avg loss:{total_loss:>8f}\n")
+        logger.info(f"Test Error:\n Accuracy:{100*correct:>0.1f}%, Avg loss:{total_loss:>8f}\n")
 
         return total_loss
     

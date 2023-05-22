@@ -9,8 +9,10 @@ from tokenizer.char_tokenizer import CharacterTokenizer
 from model.lstm_lm import LSTMLanguageModel
 from decoding.top_p_decoding import TopPDecoding
 from dataset.text_dataset import TextDataset
+from utils.early_stop import EarlyStop
 
-# TODO: log
+import logging
+logger=logging.getLogger(__name__)
 
 class CharGenerator(BaseGenerator):
 
@@ -43,7 +45,7 @@ class CharGenerator(BaseGenerator):
         self.tokenizer.save(self.output_dir)
 
         v=self.tokenizer.get_vocab_size()
-        print(f"vocab count: {v}")
+        logger.info(f"vocab count: {v}")
 
 
     def train(self,train_data:Dataset,eval_data:Dataset):
@@ -61,15 +63,23 @@ class CharGenerator(BaseGenerator):
         loss_fn=nn.CrossEntropyLoss(ignore_index=0)
         optimizer=torch.optim.Adam(model.parameters(),lr=self.learning_rate)
 
+        early_stop=EarlyStop(patience=2,delta=0)
 
-        train_loss=[]
-        eval_loss=[]
+        train_loss_list=[]
+        val_loss_list=[]
         for i in range(self.epochs):
-            print(f"Epoch:{i}/{self.epochs}..........")
-            train_loss.append(self.train_loop(train_dataloader,model,loss_fn,optimizer))
-            eval_loss.append(self.test_loop(eval_dataloader,model,loss_fn))
+            logger.info(f"Epoch:{i}/{self.epochs}..........")
+            train_loss=self.train_loop(train_dataloader,model,loss_fn,optimizer)
+            val_loss=self.test_loop(eval_dataloader,model,loss_fn)
 
-            #TODO: stop criteria
+            train_loss_list.append(train_loss)
+            val_loss_list.append(val_loss)
+
+            early_stop(val_loss)
+            if early_stop.early_stop:
+                logger.info(f"Early Stop training")
+                break
+
             #TODO: save model
 
         self.model=model
@@ -106,7 +116,7 @@ class CharGenerator(BaseGenerator):
             if batch % print_every==0:
                 print_loss_avg,current=print_loss if batch==0 else print_loss/print_every,batch*len(texts)
                 print_loss=0
-                print(f"loss:{print_loss_avg:>7f} [{current:>5d}/{size:>5d}]")
+                logger.info(f"loss:{print_loss_avg:>7f} [{current:>5d}/{size:>5d}]")
         
         return running_loss/len(dataloader)
 
@@ -135,7 +145,7 @@ class CharGenerator(BaseGenerator):
         total_loss/=len(dataloader)
         correct/=sent_length
 
-        print(f"Test Error:\n Accuracy:{100*correct:>0.1f}%, Avg loss:{total_loss:>8f}\n")
+        logger.info(f"Test Error:\n Accuracy:{100*correct:>0.1f}%, Avg loss:{total_loss:>8f}\n")
 
         return total_loss
 

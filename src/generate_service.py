@@ -7,7 +7,8 @@ from generator.char_generator import CharGenerator
 from generator.word_generator import WordGenerator
 from schemas import CreateTaskQuery,UpdateTaskResponse,Status
 from config import config
-
+import logging
+logger=logging.getLogger(__name__)
 
 def write_output(generated_text_list,generate_cols,output_path):
 
@@ -24,7 +25,7 @@ def return_result(response_payload:UpdateTaskResponse):
     response=requests.request("POST", config.SERVICE_URL, data=response_payload.json(), headers=headers)
 
     res = response.json()
-    print(res)
+    logger.info(f"response from service update task: {res}")
 
 
 def process(query:CreateTaskQuery):
@@ -35,45 +36,53 @@ def process(query:CreateTaskQuery):
     # 4. train
     # 5. generate
     # 6 send result to java service
+    try:
 
-    file_path=query.filePath
-    generate_cols=[query.columnName]
-    count=query.expectedCount
-    task_id=query.taskId
+        file_path=query.filePath
+        generate_cols=[query.columnName]
+        count=query.expectedCount
+        task_id=query.taskId
 
 
-    session_dir=os.path.dirname(os.path.dirname(file_path))
-    run_dir=os.path.dirname(file_path)
-    output_path=os.path.join(session_dir,f"{query.columnName}.csv")
+        session_dir=os.path.dirname(os.path.dirname(file_path))
+        run_dir=os.path.dirname(file_path)
+        output_path=os.path.join(session_dir,f"{query.columnName}.csv")
 
-    # try:
-    #     os.mkdir(run_dir)
-    # except Exception as e:
-    #     pass
+        # try:
+        #     os.mkdir(run_dir)
+        # except Exception as e:
+        #     pass
+        
+        concat_pattern="[SEP]"
+
+        df=read_csv(file_path)
+        concated_data=df.loc[:,generate_cols].agg(concat_pattern.join,axis=1).to_list()
+
+        word_counts=[len(row.split(" "))for row in concated_data]
+        avg_word_count=sum(word_counts)/len(word_counts)
+
+        if avg_word_count>5:
+            generator=WordGenerator(concated_data,run_dir,config.BASE_MODEL_PATH)
+        else:
+            generator=CharGenerator(concated_data,run_dir)
+
+
+        generator.run()
+        generated_text_list=generator.generate(count)
+
+        write_output(generated_text_list,generate_cols,output_path)
+
+        response_payload=UpdateTaskResponse(sessionId=query.sessionId,taskId=task_id,status=Status.COMPLETED,
+                                    actualCount=len(generated_text_list),columnName=query.columnName,filePath=output_path)
+
+        return_result(response_payload)
+    except Exception as e:
+        logger.error("generate failed",exc_info=True)
+        response_payload=UpdateTaskResponse(sessionId=query.sessionId,taskId=task_id,status=Status.ERROR,
+                                    actualCount=0,columnName=query.columnName,filePath="")
     
-    concat_pattern="[SEP]"
-
-    df=read_csv(file_path)
-    concated_data=df.loc[:,generate_cols].agg(concat_pattern.join,axis=1).to_list()
-
-    word_counts=[len(row.split(" "))for row in concated_data]
-    avg_word_count=sum(word_counts)/len(word_counts)
-
-    if avg_word_count>5:
-        generator=WordGenerator(concated_data,run_dir,config.BASE_MODEL_PATH)
-    else:
-        generator=CharGenerator(concated_data,run_dir)
-
-
-    generator.run()
-    generated_text_list=generator.generate(count)
-
-    write_output(generated_text_list,generate_cols,output_path)
-
-    response_payload=UpdateTaskResponse(sessionId=query.sessionId,taskId=task_id,status=Status.COMPLETED,
-                                actualCount=len(generated_text_list),columnName=query.columnName,filePath=output_path)
-
-    return_result(response_payload)
+        return_result(response_payload)
+    
 
 
 
