@@ -7,6 +7,8 @@ from generator.char_generator import CharGenerator
 from generator.word_generator import WordGenerator
 from schemas import CreateTaskQuery,UpdateTaskResponse,Status
 from config import config
+from urllib3.exceptions import MaxRetryError
+from requests.exceptions import ConnectionError
 import logging
 logger=logging.getLogger(__name__)
 
@@ -76,6 +78,8 @@ def process(query:CreateTaskQuery):
                                     actualCount=len(generated_text_list),columnName=query.columnName,filePath=output_path)
 
         return_result(response_payload)
+    except (ConnectionError,MaxRetryError) as e:
+        logger.error("cannot connect to service",exc_info=True)
     except Exception as e:
         logger.error("generate failed",exc_info=True)
         response_payload=UpdateTaskResponse(sessionId=query.sessionId,taskId=task_id,status=Status.ERROR,
