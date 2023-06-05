@@ -1,3 +1,5 @@
+import os
+import pathlib
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
@@ -16,6 +18,8 @@ logger=logging.getLogger(__name__)
 
 class CharGenerator(BaseGenerator):
 
+    model_type="CHAR"
+
     hidden_size=125
     n_layers=1
     epochs=50
@@ -23,26 +27,28 @@ class CharGenerator(BaseGenerator):
     learning_rate=0.0001
     
 
-    def __init__(self,data_or_filepath,output_dir):
+    def __init__(self,data_or_filepath,data_dir,model_dir=None):
 
         self.data_or_filepath=data_or_filepath
-        self.output_dir=output_dir
+        self.data_dir=data_dir
+        if model_dir:
+            self.model=torch.load(os.path.join(model_dir,"pytorch_model.bin"))
+            self.tokenizer=CharacterTokenizer().load(model_dir)
+        else:
+            self.tokenizer=CharacterTokenizer()
+            self.model=None
 
-        self.tokenizer=CharacterTokenizer()
         self.decoder=TopPDecoding()
-        self.model=None
 
-    def build_dataset(self,dir):
+    def build_dataset(self):
             
-        train_dataset=TextDataset(root=self.output_dir,split="train",max_count=5000)
-        eval_dataset=TextDataset(root=self.output_dir,split="eval",max_count=1000)
+        train_dataset=TextDataset(root=self.data_dir,split="train",max_count=5000)
+        eval_dataset=TextDataset(root=self.data_dir,split="eval",max_count=1000)
 
         return train_dataset,eval_dataset
 
     def train_tokenizer(self,train_data:Dataset):
         self.tokenizer.train(train_data.data)
-
-        self.tokenizer.save(self.output_dir)
 
         v=self.tokenizer.get_vocab_size()
         logger.info(f"vocab count: {v}")
@@ -126,6 +132,7 @@ class CharGenerator(BaseGenerator):
         correct=0
         sent_length=0
 
+        model.eval()
         with torch.no_grad():
             for batch,texts in enumerate(dataloader):
                 encodings=self.tokenizer.encode_batch(texts)
@@ -150,4 +157,12 @@ class CharGenerator(BaseGenerator):
         return total_loss
 
     def generate(self,count):
+        self.model.eval()
         return self.decoder.decode(self.model,self.tokenizer,count=count,max_length=100,top_p=0.6)
+    
+    def _save(self,dir):
+
+        self.tokenizer.save(dir)
+        torch.save(self.model,os.path.join(dir,"pytorch_model.bin"))
+
+

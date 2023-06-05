@@ -2,7 +2,8 @@ import os
 import requests
 
 import pandas as pd
-from utils.data_utils import read_csv,write_txt,write_csv
+from utils.data_utils import read_csv,write_txt,write_csv,read_txt
+from generator import get_generator
 from generator.char_generator import CharGenerator
 from generator.word_generator import WordGenerator
 from schemas import CreateTaskQuery,UpdateTaskResponse,Status
@@ -30,6 +31,13 @@ def return_result(response_payload:UpdateTaskResponse):
     logger.info(f"response from service update task: {res}")
 
 
+def get_model_by_id(model_id):
+    if not os.path.exists(config.GENERATE_MODEL_PATH):
+        return False
+    folders=os.listdir(config.GENERATE_MODEL_PATH)
+    return model_id in folders
+
+
 def process(query:CreateTaskQuery):
 
     # 1.check input: file existing, col existing
@@ -45,31 +53,44 @@ def process(query:CreateTaskQuery):
         count=query.expectedCount
         task_id=query.taskId
 
-
+        model_dir=os.path.join(config.GENERATE_MODEL_PATH,query.modelId)
         session_dir=os.path.dirname(os.path.dirname(file_path))
-        run_dir=os.path.dirname(file_path)
+        run_dir=os.path.join(os.path.dirname(file_path),query.columnName)
         output_path=os.path.join(session_dir,f"{query.columnName}.csv")
 
-        # try:
-        #     os.mkdir(run_dir)
-        # except Exception as e:
-        #     pass
+        try:
+            os.mkdir(run_dir)
+        except Exception as e:
+            pass
+
+
+        if query.usingExistModel:
+            try:
+                model_type=read_txt(os.path.join(model_dir,"model_type"))
+                generator=get_generator(model_type[0],None,run_dir,model_dir)
+            except FileNotFoundError as e:
+                logger.error(f"no existing model in {model_dir}")
+                generator=None
+
+        if not query.usingExistModel or not generator:
         
-        concat_pattern="[SEP]"
+            concat_pattern="[SEP]"
 
-        df=read_csv(file_path)
-        concated_data=df.loc[:,generate_cols].agg(concat_pattern.join,axis=1).to_list()
+            df=read_csv(file_path)
+            concated_data=df.loc[:,generate_cols].agg(concat_pattern.join,axis=1).to_list()
 
-        word_counts=[len(row.split(" "))for row in concated_data]
-        avg_word_count=sum(word_counts)/len(word_counts)
+            word_counts=[len(row.split(" "))for row in concated_data]
+            avg_word_count=sum(word_counts)/len(word_counts)
 
-        if avg_word_count>5:
-            generator=WordGenerator(concated_data,run_dir,config.BASE_MODEL_PATH)
-        else:
-            generator=CharGenerator(concated_data,run_dir)
+            if avg_word_count>5:
+                generator=WordGenerator(concated_data,run_dir,os.path.join(config.BASE_MODEL_PATH,"gpt2"))
+            else:
+                generator=CharGenerator(concated_data,run_dir)
 
 
-        generator.run()
+            generator.run()
+            generator.save(model_dir)
+            
         generated_text_list=generator.generate(count)
 
         write_output(generated_text_list,generate_cols,output_path)

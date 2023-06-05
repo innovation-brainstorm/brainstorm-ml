@@ -1,4 +1,5 @@
 
+import pathlib
 import os
 import torch
 from torch.utils.data import Dataset,DataLoader
@@ -9,11 +10,14 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel, TrainingArguments,\
 from decoding.gpt_decoding import GPTDecoding
 from dataset.text_dataset import TextDataset
 from utils.early_stop import EarlyStop
+from utils.data_utils import write_txt
 
 import logging
 logger=logging.getLogger(__name__)
 
 class WordGenerator(BaseGenerator):
+
+    model_type="WORD"
     
     epochs=5
     batch_size=8
@@ -21,21 +25,21 @@ class WordGenerator(BaseGenerator):
 
     max_length=200
 
-    def __init__(self,data_or_filepath,output_dir,base_model_path):
+    def __init__(self,data_or_filepath,data_dir,model_path):
 
         self.data_or_filepath=data_or_filepath
-        self.output_dir=output_dir
+        self.data_dir=data_dir
 
-        self.model_path=os.path.join(base_model_path,"gpt2")
+        self.model_path=model_path
 
         self.model=GPT2LMHeadModel.from_pretrained(self.model_path)
         self.tokenizer=GPT2Tokenizer.from_pretrained(self.model_path)
         self.decoder=GPTDecoding()
 
-    def build_dataset(self,dir):
+    def build_dataset(self):
 
-        train_dataset=TextDataset(root=self.output_dir,split="train",max_count=200,stop_token="<|endoftext|>")
-        eval_dataset=TextDataset(root=self.output_dir,split="eval",max_count=50,stop_token="<|endoftext|>")
+        train_dataset=TextDataset(root=self.data_dir,split="train",max_count=200,stop_token="<|endoftext|>")
+        eval_dataset=TextDataset(root=self.data_dir,split="eval",max_count=50,stop_token="<|endoftext|>")
 
         return train_dataset,eval_dataset
 
@@ -59,7 +63,6 @@ class WordGenerator(BaseGenerator):
         train_dataloader=DataLoader(train_data,batch_size=self.batch_size,shuffle=True)
         eval_dataloader=DataLoader(eval_data,batch_size=self.batch_size,shuffle=True)
 
-        self.model.train()
         optimizer=torch.optim.Adam(self.model.parameters(),lr=self.learning_rate)
 
         data_collator=DataCollatorForLanguageModeling(self.tokenizer,mlm=False,return_tensors="pt")
@@ -81,6 +84,7 @@ class WordGenerator(BaseGenerator):
             if early_stop.early_stop:
                 logger.info(f"Early Stop training")
                 break
+        
 
 
     def train_loop(self,dataloader,model,optimizer,data_collator):
@@ -90,6 +94,8 @@ class WordGenerator(BaseGenerator):
         size=len(dataloader.dataset)
         print_loss=0
         running_loss=0
+
+        model.train()
 
         for batch,texts in enumerate(dataloader):
             encodings=self.tokenizer(texts,truncation=True,padding="max_length",max_length=self.max_length)
@@ -121,6 +127,7 @@ class WordGenerator(BaseGenerator):
         correct=0
         sent_length=0
 
+        model.eval()
         with torch.no_grad():
             for batch,texts in enumerate(dataloader):
 
@@ -139,7 +146,14 @@ class WordGenerator(BaseGenerator):
         return total_loss
     
     def generate(self,count):
-
+        self.model.eval()
         return self.decoder.decode(self.model,self.tokenizer,count=count,max_length=100)
+    
+    def _save(self,dir):
+        self.tokenizer.save_pretrained(dir)
+        self.model.save_pretrained(dir)
+
+
+
 
 

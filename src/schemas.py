@@ -18,6 +18,9 @@ class CreateTaskQuery(BaseModel):
     expectedCount:int
     status:Status="NEW"
     filePath:str
+    modelId:str
+    usingExistModel:bool=False
+
 
 class CreateTaskResponse(BaseModel):
     sessionId:str=""

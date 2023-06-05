@@ -64,6 +64,7 @@ def split_data(data_or_filepath,output_dir,train_ratio,eval_ratio,test_ratio,cri
 
     print(f"total data count: {n}, train count: {len(x_train)}, eval count: {len(x_eval)}, test count: {len(x_test)}")
 
+
     write_txt(os.path.join(output_dir,"train.txt"),x_train)
     write_txt(os.path.join(output_dir,"eval.txt"),x_eval)
     write_txt(os.path.join(output_dir,"test.txt"),x_test)

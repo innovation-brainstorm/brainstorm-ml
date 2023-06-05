@@ -1,8 +1,9 @@
+import json
 from flask import Flask,request,jsonify
 from concurrent.futures import ThreadPoolExecutor
 from schemas import CreateTaskQuery,CreateTaskResponse,Status
 
-from generate_service import process
+from generate_service import process,get_model_by_id
 from config import config
 import logging
 
@@ -36,6 +37,19 @@ def create_task():
         
     return app.response_class(
                 response=response.json(),
+                mimetype='application/json'
+        )
+
+@app.route("/task/model/<model_id>",methods=["GET"])
+def get_model(model_id):
+    try:
+        response=get_model_by_id(model_id)    
+    except Exception as e:
+        logger.error("get model error:",exc_info=True)
+        response=False
+    
+    return app.response_class(
+                response=json.dumps(response),
                 mimetype='application/json'
         )
 

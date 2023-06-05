@@ -1,3 +1,6 @@
+import json
+import pickle
+import os
 
 class Encoding(object):
     def __init__(self,ids):
@@ -95,13 +98,26 @@ class CharacterTokenizer(object):
 
     def token_to_id(self,token):
         return self.token_id_dict[token]
+    
+    def load(self,dir):
+        filename=self._get_file_name(dir)
+        with open(filename, 'r') as f:
+            tmp_dict = json.load(f)
+
+        self.__dict__.update(tmp_dict)
+        return self
+
+
+    def save(self,dir):
+        filename=self._get_file_name(dir)
+        with open(filename, 'w') as f:
+            json.dump(self.__dict__, f)
+
+    def _get_file_name(self,dir):
+        return os.path.join(dir,"tokenizer.json")
 
     
-    def save(self,output_dir):
-        pass
 
-    def load(self):
-        pass
 
 
 
