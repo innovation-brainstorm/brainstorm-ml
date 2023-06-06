@@ -23,6 +23,7 @@ def create_task():
     # sessionID, taskID, status
     
     try:
+        logger.info(request.json)
         query=CreateTaskQuery(**request.json)
 
         response=CreateTaskResponse(sessionId=query.sessionId,
