@@ -74,10 +74,11 @@ def process(query:CreateTaskQuery):
 
         if not query.usingExistModel or not generator:
         
-            concat_pattern="[SEP]"
+            concat_pattern="<SEP>"
 
             df=read_csv(file_path)
             concated_data=df.loc[:,generate_cols].agg(concat_pattern.join,axis=1).to_list()
+            concated_data=[data for data in concated_data if data.strip()!=""]
 
             word_counts=[len(row.split(" "))for row in concated_data]
             avg_word_count=sum(word_counts)/len(word_counts)
