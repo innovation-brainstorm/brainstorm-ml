@@ -20,7 +20,7 @@ class WordGenerator(BaseGenerator):
     model_type="WORD"
     
     epochs=5
-    batch_size=8
+    batch_size=4
     learning_rate=5e-5
 
     max_length=200
