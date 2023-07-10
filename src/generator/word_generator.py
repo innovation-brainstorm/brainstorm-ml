@@ -5,12 +5,10 @@ import torch
 from torch.utils.data import Dataset,DataLoader
 from generator.base_generator import BaseGenerator
 
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, TrainingArguments,\
-                        trainer,DataCollatorForLanguageModeling,get_scheduler,pipeline
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, DataCollatorForLanguageModeling,get_linear_schedule_with_warmup
 from decoding.gpt_decoding import GPTDecoding
 from dataset.text_dataset import TextDataset
 from utils.early_stop import EarlyStop
-from utils.data_utils import write_txt
 
 import logging
 logger=logging.getLogger(__name__)
@@ -20,8 +18,10 @@ class WordGenerator(BaseGenerator):
     model_type="WORD"
     
     epochs=5
-    batch_size=4
+    batch_size=2
     learning_rate=5e-5
+
+    warmup_steps=100
 
     max_length=200
 
@@ -63,7 +63,16 @@ class WordGenerator(BaseGenerator):
         train_dataloader=DataLoader(train_data,batch_size=self.batch_size,shuffle=True)
         eval_dataloader=DataLoader(eval_data,batch_size=self.batch_size,shuffle=True)
 
-        optimizer=torch.optim.Adam(self.model.parameters(),lr=self.learning_rate)
+        optimizer=torch.optim.AdamW(self.model.parameters(),lr=self.learning_rate)
+
+        total_steps = len(train_dataloader) * self.epochs
+
+
+        scheduler = get_linear_schedule_with_warmup(optimizer, 
+                                            num_warmup_steps = self.warmup_steps, 
+                                            num_training_steps = total_steps)
+        # scheduler=None
+
 
         data_collator=DataCollatorForLanguageModeling(self.tokenizer,mlm=False,return_tensors="pt")
 
@@ -74,7 +83,7 @@ class WordGenerator(BaseGenerator):
         for i in range(self.epochs):
             logger.info(f"Epoch:{i}/{self.epochs}..........")
 
-            train_loss=self.train_loop(train_dataloader,self.model,optimizer,data_collator)
+            train_loss=self.train_loop(train_dataloader,self.model,optimizer,data_collator,scheduler)
             val_loss=self.test_loop(eval_dataloader,self.model,self.tokenizer,data_collator)
 
             train_loss_list.append(train_loss)
@@ -87,7 +96,7 @@ class WordGenerator(BaseGenerator):
         
 
 
-    def train_loop(self,dataloader,model,optimizer,data_collator):
+    def train_loop(self,dataloader,model,optimizer,data_collator,scheduler):
 
         print_every=10
 
@@ -113,6 +122,7 @@ class WordGenerator(BaseGenerator):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            scheduler.step()
 
             if batch % print_every==0:
                 print_loss_avg,current=print_loss if batch==0 else print_loss/print_every,batch*len(texts)
