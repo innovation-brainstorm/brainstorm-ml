@@ -84,7 +84,7 @@ def process(query:CreateTaskQuery):
             avg_word_count=sum(word_counts)/len(word_counts)
 
             if avg_word_count>5:
-                generator=WordGenerator(concated_data,run_dir,os.path.join(config.BASE_MODEL_PATH,"gpt2"))
+                generator=WordGenerator(concated_data,run_dir,os.path.join(config.BASE_MODEL_PATH,"distilgpt2"))
             else:
                 generator=CharGenerator(concated_data,run_dir)
 
