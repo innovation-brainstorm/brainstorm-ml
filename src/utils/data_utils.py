@@ -18,6 +18,7 @@ def read_txt(path):
 def write_txt(path,data):
     with open(path,"w",encoding="utf-8") as f:
         for row in data:
+            row=row.replace("\r\n","\n").replace("\n","\\n")
             f.write(row)
             f.write("\n")
 
