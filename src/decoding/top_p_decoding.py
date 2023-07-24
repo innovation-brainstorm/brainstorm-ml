@@ -9,9 +9,10 @@ class TopPDecoding(object):
 
         
         output_texts=[]
-        with torch.no_grad():
 
-            for c in range(count):
+        c=0
+        with torch.no_grad():
+            while c<count:
                 output_token_ids=[tokenizer.token_to_id("[BOS]")]
                 hidden=None
 
@@ -44,7 +45,9 @@ class TopPDecoding(object):
                         break
                 
                 output_text=tokenizer.decode(output_token_ids)
-                output_texts.append(output_text)
+                if output_text.strip()!="":
+                    output_texts.append(output_text)
+                    c+=1
 
         return output_texts
         
