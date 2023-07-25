@@ -67,7 +67,7 @@ def process(query:CreateTaskQuery):
         if query.usingExistModel:
             try:
                 model_type=read_txt(os.path.join(model_dir,"model_type"))
-                generator=get_generator(model_type[0],None,run_dir,model_dir)
+                generator=get_generator(model_type[0],file_path,run_dir,model_dir)
             except FileNotFoundError as e:
                 logger.error(f"no existing model in {model_dir}")
                 generator=None
