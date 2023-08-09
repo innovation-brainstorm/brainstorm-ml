@@ -19,9 +19,10 @@ class WordGenerator(BaseGenerator):
     
     epochs=5
     batch_size=2
+    gradient_accumulation_steps=1
     learning_rate=5e-5
 
-    warmup_steps=100
+    warmup_steps=50
 
     max_length=200
 
@@ -32,14 +33,17 @@ class WordGenerator(BaseGenerator):
 
         self.model_path=model_path
 
-        self.model=GPT2LMHeadModel.from_pretrained(self.model_path)
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # self.device="cpu"
+
+        self.model=GPT2LMHeadModel.from_pretrained(self.model_path).to(self.device)
         self.tokenizer=GPT2Tokenizer.from_pretrained(self.model_path)
         self.decoder=GPTDecoding()
 
     def build_dataset(self):
 
-        train_dataset=TextDataset(root=self.data_dir,split="train",max_count=200,stop_token="<|endoftext|>")
-        eval_dataset=TextDataset(root=self.data_dir,split="eval",max_count=50,stop_token="<|endoftext|>")
+        train_dataset=TextDataset(root=self.data_dir,split="train",max_count=200,stop_token="<|endoftext|>",start_token="<|startoftext|>")
+        eval_dataset=TextDataset(root=self.data_dir,split="eval",max_count=50,stop_token="<|endoftext|>",start_token="<|startoftext|>")
 
         return train_dataset,eval_dataset
 
@@ -47,7 +51,7 @@ class WordGenerator(BaseGenerator):
     def train_tokenizer(self,train_data:Dataset):
 
         self.tokenizer.pad_token=self.tokenizer.bos_token
-        self.tokenizer.add_special_tokens({'pad_token':'<pad>','sep_token':"<SEP>"})
+        self.tokenizer.add_special_tokens({'pad_token':'<pad>','sep_token':"<SEP>","bos_token":"<|startoftext|>"})
         self.model.resize_token_embeddings(len(self.tokenizer))
 
 
@@ -65,7 +69,7 @@ class WordGenerator(BaseGenerator):
 
         optimizer=torch.optim.AdamW(self.model.parameters(),lr=self.learning_rate)
 
-        total_steps = len(train_dataloader) * self.epochs
+        total_steps = len(train_dataloader)//self.gradient_accumulation_steps * self.epochs
 
 
         scheduler = get_linear_schedule_with_warmup(optimizer, 
@@ -76,7 +80,7 @@ class WordGenerator(BaseGenerator):
 
         data_collator=DataCollatorForLanguageModeling(self.tokenizer,mlm=False,return_tensors="pt")
 
-        early_stop=EarlyStop(patience=2,delta=0)
+        early_stop=EarlyStop(patience=2,delta=0.01)
 
         train_loss_list=[]
         val_loss_list=[]
@@ -109,22 +113,25 @@ class WordGenerator(BaseGenerator):
         for batch,texts in enumerate(dataloader):
             encodings=self.tokenizer(texts,truncation=True,padding="max_length",max_length=self.max_length)
             
-            X=data_collator([encodings])
+            X=data_collator([encodings]).to(self.device)
 
 
             output=model(**X)
-            loss=output.loss
+            loss=output.loss/self.gradient_accumulation_steps
 
             print_loss+=loss
             running_loss+=loss
-
-
-            optimizer.zero_grad()
             loss.backward()
-            optimizer.step()
-            scheduler.step()
+            
+            if  (batch+1) % self.gradient_accumulation_steps==0 or (batch + 1 == len(dataloader)):
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                
+                
+                
 
-            if batch % print_every==0:
+            if batch*self.gradient_accumulation_steps % print_every==0:
                 print_loss_avg,current=print_loss if batch==0 else print_loss/print_every,batch*len(texts)
                 print_loss=0
                 logger.info(f"loss:{print_loss_avg:>7f} [{current:>5d}/{size:>5d}]")
@@ -142,7 +149,7 @@ class WordGenerator(BaseGenerator):
             for batch,texts in enumerate(dataloader):
 
                 encodings=tokenizer(texts,truncation=True,padding="max_length",max_length=self.max_length)
-                X=data_collator([encodings])
+                X=data_collator([encodings]).to(self.device)
 
 
                 output=model(**X)
@@ -157,7 +164,7 @@ class WordGenerator(BaseGenerator):
     
     def generate(self,count):
         self.model.eval()
-        return self.decoder.decode(self.model,self.tokenizer,count=count,max_length=100)
+        return self.decoder.decode(self.model,self.tokenizer,count=count,max_length=self.max_length)
     
     def _save(self,dir):
         self.tokenizer.save_pretrained(dir)

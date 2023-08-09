@@ -4,11 +4,12 @@ from utils.data_utils import read_txt,read_csv
 from torch.utils.data import Dataset
 
 class TextDataset(Dataset):
-    def __init__(self,root,split="train",max_count=None,ext="txt",stop_token=""):
+    def __init__(self,root,split="train",max_count=None,ext="txt",stop_token="",start_token=""):
         self.root=root
         self.split=split
         self.ext=ext
         self.stop_token=stop_token
+        self.start_token=start_token
 
         self.data=self._load_data(max_count)
 
@@ -35,7 +36,7 @@ class TextDataset(Dataset):
 
     def __getitem__(self,idx):
 
-        sample=self.data[idx].strip()+self.stop_token
+        sample=self.start_token+self.data[idx].strip()+self.stop_token
 
         return sample
 
